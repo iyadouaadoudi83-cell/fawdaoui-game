@@ -2,395 +2,553 @@
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Fawdaoui Game</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Fawdaoui Game 🎮</title>
 
 <style>
 * {
-  box-sizing: border-box;
-  touch-action: none;
+    box-sizing: border-box;
+    touch-action: none;
+    -webkit-tap-highlight-color: transparent;
 }
 
 body {
-  margin: 0;
-  background: #111827;
-  color: white;
-  font-family: Arial, sans-serif;
-  text-align: center;
-  overflow: hidden;
+    margin: 0;
+    padding: 0;
+    background: #111827;
+    color: white;
+    font-family: Arial, sans-serif;
+    text-align: center;
+    overflow: hidden;
 }
 
 h1 {
-  margin: 12px 0 5px;
-  font-size: 28px;
+    margin: 12px 0 5px;
+    font-size: 32px;
 }
 
-#info {
-  font-size: 18px;
-  margin-bottom: 8px;
+#hud {
+    font-size: 22px;
+    margin-bottom: 12px;
 }
 
-canvas {
-  display: block;
-  margin: auto;
-  background: #1f2937;
-  border: 3px solid white;
-  border-radius: 12px;
-  max-width: 95vw;
-  max-height: 65vh;
+#game {
+    width: min(92vw, 650px);
+    height: min(70vh, 900px);
+    min-height: 500px;
+    border: 6px solid white;
+    border-radius: 25px;
+    background: #1f2937;
+    display: block;
+    margin: auto;
 }
 
 .controls {
-  margin-top: 12px;
-  display: flex;
-  justify-content: center;
-  gap: 10px;
-  flex-wrap: wrap;
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+    margin-top: 18px;
+    direction: ltr;
 }
 
-button {
-  width: 65px;
-  height: 55px;
-  border: none;
-  border-radius: 12px;
-  background: #374151;
-  color: white;
-  font-size: 25px;
-  font-weight: bold;
+.control {
+    width: 95px;
+    height: 85px;
+    border: 0;
+    border-radius: 22px;
+    background: #374151;
+    color: white;
+    font-size: 38px;
+    cursor: pointer;
+    box-shadow: 0 5px 0 #1f2937;
 }
 
-button:active {
-  transform: scale(.92);
-  background: #4b5563;
+.control:active {
+    transform: translateY(4px);
+    box-shadow: 0 1px 0 #1f2937;
 }
 
 #restart {
-  width: 150px;
-  font-size: 18px;
-  background: #16a34a;
+    margin-top: 22px;
+    padding: 18px 45px;
+    border: 0;
+    border-radius: 20px;
+    background: #16a34a;
+    color: white;
+    font-size: 23px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+#restart:active {
+    transform: scale(.97);
+}
+
+#message {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.78);
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    z-index: 10;
+}
+
+#message h2 {
+    font-size: 42px;
+    margin: 10px;
+}
+
+#message p {
+    font-size: 24px;
+}
+
+@media (max-width: 500px) {
+    h1 {
+        font-size: 29px;
+    }
+
+    #hud {
+        font-size: 20px;
+    }
+
+    #game {
+        width: 94vw;
+        height: 65vh;
+        min-height: 450px;
+    }
+
+    .control {
+        width: 78px;
+        height: 75px;
+        font-size: 32px;
+    }
 }
 </style>
 </head>
 
 <body>
 
-<h1>🎮 Fawdaoui Game</h1>
+<h1>Fawdaoui Game 🎮</h1>
 
-<div id="info">
-  النقاط: <span id="score">0</span>
-  &nbsp; | &nbsp;
-  الحياة: <span id="life">3</span>
+<div id="hud">
+    النقاط: <span id="score">0</span>
+    &nbsp; | &nbsp;
+    الحياة: <span id="lives">2</span>
 </div>
 
 <canvas id="game" width="400" height="550"></canvas>
 
 <div class="controls">
-  <button id="left">⬅️</button>
-  <button id="up">⬆️</button>
-  <button id="down">⬇️</button>
-  <button id="right">➡️</button>
+    <button class="control" id="right">➡️</button>
+    <button class="control" id="down">⬇️</button>
+    <button class="control" id="up">⬆️</button>
+    <button class="control" id="left">⬅️</button>
 </div>
 
-<div class="controls">
-  <button id="restart">🔄 إعادة اللعب</button>
+<button id="restart">إعادة اللعب 🔄</button>
+
+<div id="message">
+    <h2>انتهت اللعبة 💀</h2>
+    <p>النقاط: <span id="finalScore">0</span></p>
+    <button id="restart2">إعادة اللعب 🔄</button>
 </div>
 
 <script>
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 
-const scoreEl = document.getElementById("score");
-const lifeEl = document.getElementById("life");
+const scoreElement = document.getElementById("score");
+const livesElement = document.getElementById("lives");
+const message = document.getElementById("message");
+const finalScore = document.getElementById("finalScore");
 
-let player;
-let enemies;
-let coins;
-let score;
-let life;
-let gameOver;
-let keys = {};
-
-function startGame() {
-  player = {
+const player = {
     x: 180,
     y: 470,
-    size: 30,
-    speed: 5
-  };
+    width: 38,
+    height: 38,
+    speed: 6
+};
 
-  enemies = [];
-  coins = [];
-  score = 0;
-  life = 3;
-  gameOver = false;
+let score = 0;
+let lives = 2;
+let gameRunning = true;
 
-  scoreEl.textContent = score;
-  lifeEl.textContent = life;
+let keys = {
+    left: false,
+    right: false,
+    up: false,
+    down: false
+};
 
-  for (let i = 0; i < 5; i++) {
-    createEnemy();
-  }
+let enemies = [];
+let coins = [];
 
-  for (let i = 0; i < 4; i++) {
-    createCoin();
-  }
+function randomX(size) {
+    return Math.random() * (canvas.width - size);
+}
+
+function randomY() {
+    return -50 - Math.random() * 300;
 }
 
 function createEnemy() {
-  enemies.push({
-    x: Math.random() * 360,
-    y: -40 - Math.random() * 300,
-    size: 30,
-    speed: 2 + Math.random() * 2
-  });
+    enemies.push({
+        x: randomX(34),
+        y: randomY(),
+        width: 34,
+        height: 34,
+        speed: 2 + Math.random() * 2.5
+    });
 }
 
 function createCoin() {
-  coins.push({
-    x: 20 + Math.random() * 350,
-    y: 50 + Math.random() * 400,
-    size: 16
-  });
+    coins.push({
+        x: randomX(34),
+        y: randomY(),
+        radius: 17,
+        speed: 2 + Math.random() * 2
+    });
+}
+
+for (let i = 0; i < 4; i++) {
+    createEnemy();
+}
+
+for (let i = 0; i < 4; i++) {
+    createCoin();
+}
+
+function drawBackground() {
+    ctx.fillStyle = "#1f2937";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    ctx.strokeStyle = "rgba(255,255,255,.06)";
+    ctx.lineWidth = 2;
+
+    for (let x = 0; x <= canvas.width; x += 32) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, canvas.height);
+        ctx.stroke();
+    }
+
+    for (let y = 0; y <= canvas.height; y += 32) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(canvas.width, y);
+        ctx.stroke();
+    }
 }
 
 function drawPlayer() {
-  ctx.fillStyle = "#22c55e";
-  ctx.fillRect(
-    player.x,
-    player.y,
-    player.size,
-    player.size
-  );
+    ctx.fillStyle = "#22c55e";
+    ctx.fillRect(
+        player.x,
+        player.y,
+        player.width,
+        player.height
+    );
 
-  ctx.fillStyle = "white";
-  ctx.fillRect(player.x + 7, player.y + 7, 5, 5);
-  ctx.fillRect(player.x + 18, player.y + 7, 5, 5);
+    ctx.fillStyle = "white";
+
+    ctx.fillRect(
+        player.x + 9,
+        player.y + 9,
+        7,
+        7
+    );
+
+    ctx.fillRect(
+        player.x + 23,
+        player.y + 9,
+        7,
+        7
+    );
 }
 
-function drawEnemies() {
-  enemies.forEach(enemy => {
+function drawEnemy(enemy) {
     ctx.fillStyle = "#ef4444";
+
     ctx.beginPath();
     ctx.arc(
-      enemy.x + enemy.size / 2,
-      enemy.y + enemy.size / 2,
-      enemy.size / 2,
-      0,
-      Math.PI * 2
+        enemy.x + enemy.width / 2,
+        enemy.y + enemy.height / 2,
+        enemy.width / 2,
+        0,
+        Math.PI * 2
     );
     ctx.fill();
-  });
 }
 
-function drawCoins() {
-  coins.forEach(coin => {
+function drawCoin(coin) {
     ctx.fillStyle = "#facc15";
+
     ctx.beginPath();
     ctx.arc(
-      coin.x,
-      coin.y,
-      coin.size,
-      0,
-      Math.PI * 2
+        coin.x + coin.radius,
+        coin.y + coin.radius,
+        coin.radius,
+        0,
+        Math.PI * 2
     );
     ctx.fill();
 
     ctx.fillStyle = "#92400e";
-    ctx.font = "bold 15px Arial";
-    ctx.fillText("★", coin.x - 7, coin.y + 5);
-  });
-}
+    ctx.font = "bold 20px Arial";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
 
-function movePlayer() {
-  if (keys["ArrowLeft"]) {
-    player.x -= player.speed;
-  }
-
-  if (keys["ArrowRight"]) {
-    player.x += player.speed;
-  }
-
-  if (keys["ArrowUp"]) {
-    player.y -= player.speed;
-  }
-
-  if (keys["ArrowDown"]) {
-    player.y += player.speed;
-  }
-
-  if (player.x < 0) player.x = 0;
-  if (player.y < 0) player.y = 0;
-
-  if (player.x > canvas.width - player.size) {
-    player.x = canvas.width - player.size;
-  }
-
-  if (player.y > canvas.height - player.size) {
-    player.y = canvas.height - player.size;
-  }
+    ctx.fillText(
+        "★",
+        coin.x + coin.radius,
+        coin.y + coin.radius
+    );
 }
 
 function collision(a, b) {
-  return (
-    a.x < b.x + b.size &&
-    a.x + a.size > b.x &&
-    a.y < b.y + b.size &&
-    a.y + a.size > b.y
-  );
+    return (
+        a.x < b.x + b.width &&
+        a.x + a.width > b.x &&
+        a.y < b.y + b.height &&
+        a.y + a.height > b.y
+    );
+}
+
+function coinCollision(player, coin) {
+    const closestX = Math.max(
+        player.x,
+        Math.min(coin.x + coin.radius, player.x + player.width)
+    );
+
+    const closestY = Math.max(
+        player.y,
+        Math.min(coin.y + coin.radius, player.y + player.height)
+    );
+
+    const dx = coin.x + coin.radius - closestX;
+    const dy = coin.y + coin.radius - closestY;
+
+    return dx * dx + dy * dy <
+        coin.radius * coin.radius;
+}
+
+function updatePlayer() {
+    if (keys.left) {
+        player.x -= player.speed;
+    }
+
+    if (keys.right) {
+        player.x += player.speed;
+    }
+
+    if (keys.up) {
+        player.y -= player.speed;
+    }
+
+    if (keys.down) {
+        player.y += player.speed;
+    }
+
+    if (player.x < 0) {
+        player.x = 0;
+    }
+
+    if (player.y < 0) {
+        player.y = 0;
+    }
+
+    if (player.x + player.width > canvas.width) {
+        player.x = canvas.width - player.width;
+    }
+
+    if (player.y + player.height > canvas.height) {
+        player.y = canvas.height - player.height;
+    }
 }
 
 function updateEnemies() {
-  enemies.forEach(enemy => {
-    enemy.y += enemy.speed;
+    for (let i = enemies.length - 1; i >= 0; i--) {
 
-    if (enemy.y > canvas.height) {
-      enemy.y = -40;
-      enemy.x = Math.random() * 360;
+        const enemy = enemies[i];
+
+        enemy.y += enemy.speed;
+
+        if (collision(player, enemy)) {
+
+            enemies.splice(i, 1);
+
+            lives--;
+
+            livesElement.textContent = lives;
+
+            createEnemy();
+
+            if (lives <= 0) {
+                endGame();
+                return;
+            }
+
+            continue;
+        }
+
+        if (enemy.y > canvas.height + 50) {
+            enemies.splice(i, 1);
+            createEnemy();
+        }
     }
-
-    if (collision(player, enemy)) {
-      life--;
-      lifeEl.textContent = life;
-
-      enemy.y = -50;
-      enemy.x = Math.random() * 360;
-
-      if (life <= 0) {
-        gameOver = true;
-      }
-    }
-  });
 }
 
-function collectCoins() {
-  coins.forEach((coin, index) => {
-    const dx = player.x + player.size / 2 - coin.x;
-    const dy = player.y + player.size / 2 - coin.y;
-    const distance = Math.sqrt(dx * dx + dy * dy);
+function updateCoins() {
+    for (let i = coins.length - 1; i >= 0; i--) {
 
-    if (distance < 28) {
-      score++;
-      scoreEl.textContent = score;
+        const coin = coins[i];
 
-      coins.splice(index, 1);
-      createCoin();
+        coin.y += coin.speed;
+
+        if (coinCollision(player, coin)) {
+
+            coins.splice(i, 1);
+
+            score += 10;
+
+            scoreElement.textContent = score;
+
+            createCoin();
+
+            continue;
+        }
+
+        if (coin.y > canvas.height + 50) {
+            coins.splice(i, 1);
+            createCoin();
+        }
     }
-  });
 }
 
-function drawBackground() {
-  ctx.fillStyle = "#1f2937";
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
+function draw() {
 
-  ctx.strokeStyle = "#374151";
-  ctx.lineWidth = 1;
+    drawBackground();
 
-  for (let x = 0; x < canvas.width; x += 40) {
-    ctx.beginPath();
-    ctx.moveTo(x, 0);
-    ctx.lineTo(x, canvas.height);
-    ctx.stroke();
-  }
+    for (const coin of coins) {
+        drawCoin(coin);
+    }
 
-  for (let y = 0; y < canvas.height; y += 40) {
-    ctx.beginPath();
-    ctx.moveTo(0, y);
-    ctx.lineTo(canvas.width, y);
-    ctx.stroke();
-  }
-}
+    for (const enemy of enemies) {
+        drawEnemy(enemy);
+    }
 
-function drawGameOver() {
-  ctx.fillStyle = "rgba(0,0,0,.75)";
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-  ctx.fillStyle = "white";
-  ctx.textAlign = "center";
-
-  ctx.font = "bold 38px Arial";
-  ctx.fillText("انتهت اللعبة!", canvas.width / 2, 240);
-
-  ctx.font = "24px Arial";
-  ctx.fillText(
-    "النقاط: " + score,
-    canvas.width / 2,
-    285
-  );
-
-  ctx.font = "18px Arial";
-  ctx.fillText(
-    "اضغط إعادة اللعب",
-    canvas.width / 2,
-    325
-  );
-
-  ctx.textAlign = "start";
+    drawPlayer();
 }
 
 function gameLoop() {
-  drawBackground();
 
-  if (!gameOver) {
-    movePlayer();
+    if (!gameRunning) {
+        return;
+    }
+
+    updatePlayer();
     updateEnemies();
-    collectCoins();
-  }
+    updateCoins();
+    draw();
 
-  drawCoins();
-  drawEnemies();
-  drawPlayer();
-
-  if (gameOver) {
-    drawGameOver();
-  }
-
-  requestAnimationFrame(gameLoop);
+    requestAnimationFrame(gameLoop);
 }
 
-document.addEventListener("keydown", e => {
-  keys[e.key] = true;
-});
+function endGame() {
 
-document.addEventListener("keyup", e => {
-  keys[e.key] = false;
-});
+    gameRunning = false;
 
-function control(button, key) {
-  const el = document.getElementById(button);
+    finalScore.textContent = score;
 
-  el.addEventListener("touchstart", e => {
-    e.preventDefault();
-    keys[key] = true;
-  });
-
-  el.addEventListener("touchend", e => {
-    e.preventDefault();
-    keys[key] = false;
-  });
-
-  el.addEventListener("mousedown", () => {
-    keys[key] = true;
-  });
-
-  el.addEventListener("mouseup", () => {
-    keys[key] = false;
-  });
-
-  el.addEventListener("mouseleave", () => {
-    keys[key] = false;
-  });
+    message.style.display = "flex";
 }
 
-control("left", "ArrowLeft");
-control("right", "ArrowRight");
-control("up", "ArrowUp");
-control("down", "ArrowDown");
+function restartGame() {
 
-document.getElementById("restart").addEventListener("click", startGame);
+    score = 0;
+    lives = 2;
 
-startGame();
-gameLoop();
-</script>
+    scoreElement.textContent = score;
+    livesElement.textContent = lives;
 
-</body>
-</html>
+    player.x = 180;
+    player.y = 470;
+
+    enemies = [];
+    coins = [];
+
+    for (let i = 0; i < 4; i++) {
+        createEnemy();
+    }
+
+    for (let i = 0; i < 4; i++) {
+        createCoin();
+    }
+
+    message.style.display = "none";
+
+    gameRunning = true;
+
+    gameLoop();
+}
+
+document.getElementById("restart")
+    .addEventListener("click", restartGame);
+
+document.getElementById("restart2")
+    .addEventListener("click", restartGame);
+
+function controlButton(id, direction) {
+
+    const button = document.getElementById(id);
+
+    button.addEventListener("pointerdown", function(e) {
+        e.preventDefault();
+        keys[direction] = true;
+    });
+
+    button.addEventListener("pointerup", function(e) {
+        e.preventDefault();
+        keys[direction] = false;
+    });
+
+    button.addEventListener("pointerleave", function() {
+        keys[direction] = false;
+    });
+
+    button.addEventListener("pointercancel", function() {
+        keys[direction] = false;
+    });
+}
+
+controlButton("left", "left");
+controlButton("right", "right");
+controlButton("up", "up");
+controlButton("down", "down");
+
+document.addEventListener("keydown", function(e) {
+
+    if (e.key === "ArrowLeft") {
+        keys.left = true;
+    }
+
+    if (e.key === "ArrowRight") {
+        keys.right = true;
+    }
+
+    if (e.key === "ArrowUp") {
+        keys.up = true;
+    }
+
+    if (e.key === "ArrowDown") {
+        keys.down = true;
+    }
+});
+
+document.addEventListener("keyup", function(e) {
+
+    if (e.key === "Arrow
+    
