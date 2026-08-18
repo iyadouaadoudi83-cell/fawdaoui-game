@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fawdaoui Game</title>
+
+<style>
+* {
+  box-sizing: border-box;
+  touch-action: none;
+}
+
+body {
+  margin: 0;
+  background: #111827;
+  color: white;
+  font-family: Arial, sans-serif;
+  text-align: center;
+  overflow: hidden;
+}
+
+h1 {
+  margin: 12px 0 5px;
+  font-size: 28px;
+}
+
+#info {
+  font-size: 18px;
+  margin-bottom: 8px;
+}
+
+canvas {
+  display: block;
+  margin: auto;
+  background: #1f2937;
+  border: 3px solid white;
+  border-radius: 12px;
+  max-width: 95vw;
+  max-height: 65vh;
+}
+
+.controls {
+  margin-top: 12px;
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+button {
+  width: 65px;
+  height: 55px;
+  border: none;
+  border-radius: 12px;
+  background: #374151;
+  color: white;
+  font-size: 25px;
+  font-weight: bold;
+}
+
+button:active {
+  transform: scale(.92);
+  background: #4b5563;
+}
+
+#restart {
+  width: 150px;
+  font-size: 18px;
+  background: #16a34a;
+}
+</style>
+</head>
+
+<body>
+
+<h1>🎮 Fawdaoui Game</h1>
+
+<div id="info">
+  النقاط: <span id="score">0</span>
+  &nbsp; | &nbsp;
+  الحياة: <span id="life">3</span>
+</div>
+
+<canvas id="game" width="400" height="550"></canvas>
+
+<div class="controls">
+  <button id="left">⬅️</button>
+  <button id="up">⬆️</button>
+  <button id="down">⬇️</button>
+  <button id="right">➡️</button>
+</div>
+
+<div class="controls">
+  <button id="restart">🔄 إعادة اللعب</button>
+</div>
+
+<script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+
+const scoreEl = document.getElementById("score");
+const lifeEl = document.getElementById("life");
+
+let player;
+let enemies;
+let coins;
+let score;
+let life;
+let gameOver;
+let keys = {};
+
+function startGame() {
+  player = {
+    x: 180,
+    y: 470,
+    size: 30,
+    speed: 5
+  };
+
+  enemies = [];
+  coins = [];
+  score = 0;
+  life = 3;
+  gameOver = false;
+
+  scoreEl.textContent = score;
+  lifeEl.textContent = life;
+
+  for (let i = 0; i < 5; i++) {
+    createEnemy();
+  }
+
+  for (let i = 0; i < 4; i++) {
+    createCoin();
+  }
+}
+
+function createEnemy() {
+  enemies.push({
+    x: Math.random() * 360,
+    y: -40 - Math.random() * 300,
+    size: 30,
+    speed: 2 + Math.random() * 2
+  });
+}
+
+function createCoin() {
+  coins.push({
+    x: 20 + Math.random() * 350,
+    y: 50 + Math.random() * 400,
+    size: 16
+  });
+}
+
+function drawPlayer() {
+  ctx.fillStyle = "#22c55e";
+  ctx.fillRect(
+    player.x,
+    player.y,
+    player.size,
+    player.size
+  );
+
+  ctx.fillStyle = "white";
+  ctx.fillRect(player.x + 7, player.y + 7, 5, 5);
+  ctx.fillRect(player.x + 18, player.y + 7, 5, 5);
+}
+
+function drawEnemies() {
+  enemies.forEach(enemy => {
+    ctx.fillStyle = "#ef4444";
+    ctx.beginPath();
+    ctx.arc(
+      enemy.x + enemy.size / 2,
+      enemy.y + enemy.size / 2,
+      enemy.size / 2,
+      0,
+      Math.PI * 2
+    );
+    ctx.fill();
+  });
+}
+
+function drawCoins() {
+  coins.forEach(coin => {
+    ctx.fillStyle = "#facc15";
+    ctx.beginPath();
+    ctx.arc(
+      coin.x,
+      coin.y,
+      coin.size,
+      0,
+      Math.PI * 2
+    );
+    ctx.fill();
+
+    ctx.fillStyle = "#92400e";
+    ctx.font = "bold 15px Arial";
+    ctx.fillText("★", coin.x - 7, coin.y + 5);
+  });
+}
+
+function movePlayer() {
+  if (keys["ArrowLeft"]) {
+    player.x -= player.speed;
+  }
+
+  if (keys["ArrowRight"]) {
+    player.x += player.speed;
+  }
+
+  if (keys["ArrowUp"]) {
+    player.y -= player.speed;
+  }
+
+  if (keys["ArrowDown"]) {
+    player.y += player.speed;
+  }
+
+  if (player.x < 0) player.x = 0;
+  if (player.y < 0) player.y = 0;
+
+  if (player.x > canvas.width - player.size) {
+    player.x = canvas.width - player.size;
+  }
+
+  if (player.y > canvas.height - player.size) {
+    player.y = canvas.height - player.size;
+  }
+}
+
+function collision(a, b) {
+  return (
+    a.x < b.x + b.size &&
+    a.x + a.size > b.x &&
+    a.y < b.y + b.size &&
+    a.y + a.size > b.y
+  );
+}
+
+function updateEnemies() {
+  enemies.forEach(enemy => {
+    enemy.y += enemy.speed;
+
+    if (enemy.y > canvas.height) {
+      enemy.y = -40;
+      enemy.x = Math.random() * 360;
+    }
+
+    if (collision(player, enemy)) {
+      life--;
+      lifeEl.textContent = life;
+
+      enemy.y = -50;
+      enemy.x = Math.random() * 360;
+
+      if (life <= 0) {
+        gameOver = true;
+      }
+    }
+  });
+}
+
+function collectCoins() {
+  coins.forEach((coin, index) => {
+    const dx = player.x + player.size / 2 - coin.x;
+    const dy = player.y + player.size / 2 - coin.y;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+
+    if (distance < 28) {
+      score++;
+      scoreEl.textContent = score;
+
+      coins.splice(index, 1);
+      createCoin();
+    }
+  });
+}
+
+function drawBackground() {
+  ctx.fillStyle = "#1f2937";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  ctx.strokeStyle = "#374151";
+  ctx.lineWidth = 1;
+
+  for (let x = 0; x < canvas.width; x += 40) {
+    ctx.beginPath();
+    ctx.moveTo(x, 0);
+    ctx.lineTo(x, canvas.height);
+    ctx.stroke();
+  }
+
+  for (let y = 0; y < canvas.height; y += 40) {
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.lineTo(canvas.width, y);
+    ctx.stroke();
+  }
+}
+
+function drawGameOver() {
+  ctx.fillStyle = "rgba(0,0,0,.75)";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  ctx.fillStyle = "white";
+  ctx.textAlign = "center";
+
+  ctx.font = "bold 38px Arial";
+  ctx.fillText("انتهت اللعبة!", canvas.width / 2, 240);
+
+  ctx.font = "24px Arial";
+  ctx.fillText(
+    "النقاط: " + score,
+    canvas.width / 2,
+    285
+  );
+
+  ctx.font = "18px Arial";
+  ctx.fillText(
+    "اضغط إعادة اللعب",
+    canvas.width / 2,
+    325
+  );
+
+  ctx.textAlign = "start";
+}
+
+function gameLoop() {
+  drawBackground();
+
+  if (!gameOver) {
+    movePlayer();
+    updateEnemies();
+    collectCoins();
+  }
+
+  drawCoins();
+  drawEnemies();
+  drawPlayer();
+
+  if (gameOver) {
+    drawGameOver();
+  }
+
+  requestAnimationFrame(gameLoop);
+}
+
+document.addEventListener("keydown", e => {
+  keys[e.key] = true;
+});
+
+document.addEventListener("keyup", e => {
+  keys[e.key] = false;
+});
+
+function control(button, key) {
+  const el = document.getElementById(button);
+
+  el.addEventListener("touchstart", e => {
+    e.preventDefault();
+    keys[key] = true;
+  });
+
+  el.addEventListener("touchend", e => {
+    e.preventDefault();
+    keys[key] = false;
+  });
+
+  el.addEventListener("mousedown", () => {
+    keys[key] = true;
+  });
+
+  el.addEventListener("mouseup", () => {
+    keys[key] = false;
+  });
+
+  el.addEventListener("mouseleave", () => {
+    keys[key] = false;
+  });
+}
+
+control("left", "ArrowLeft");
+control("right", "ArrowRight");
+control("up", "ArrowUp");
+control("down", "ArrowDown");
+
+document.getElementById("restart").addEventListener("click", startGame);
+
+startGame();
+gameLoop();
+</script>
+
+</body>
+</html>
